@@ -6,4 +6,4 @@ declare(strict_types=1);
  * Anyone who knows this code can register as an administrator.
  */
 const ADMIN_REGISTRATION_CODE = 'JEEWAN48';
-const APP_NAME = 'FitTrack';
+const APP_NAME = 'FitTracker';
