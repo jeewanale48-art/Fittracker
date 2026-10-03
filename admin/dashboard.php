@@ -1,0 +1,25 @@
+<?php
+require_once __DIR__ . '/../includes/auth.php';
+requireRole('admin');
+
+$totalUsers = $totalAdmins = $totalWorkouts = $totalExercises = 0;
+$recentUsers = [];
+try {
+    $totalUsers = (int) $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'user'")->fetchColumn();
+    $totalAdmins = (int) $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'admin'")->fetchColumn();
+    $totalWorkouts = (int) $pdo->query('SELECT COUNT(*) FROM workout_sessions')->fetchColumn();
+    $totalExercises = (int) $pdo->query('SELECT COUNT(*) FROM exercises')->fetchColumn();
+    $recentUsers = $pdo->query('SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC LIMIT 8')->fetchAll();
+} catch (PDOException $exception) {
+    error_log('FitTrack admin dashboard: ' . $exception->getMessage());
+    $loadError = true;
+}
+$adminName = $_SESSION['user_name'] ?? 'Administrator';
+?>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin Dashboard | FitTrack</title><link rel="stylesheet" href="../assets/css/style.css"></head><body>
+<div class="app-shell"><aside class="sidebar"><a class="brand" href="dashboard.php"><span class="brand-mark">✣</span>FitTrack</a><nav class="nav-list"><a class="active" href="dashboard.php"><span class="ico">⌂</span>Overview</a><a href="users.php"><span class="ico">♙</span>Manage users</a><a href="exercises.php"><span class="ico">⚒</span>Exercises</a><a href="../dashboard.php"><span class="ico">↗</span>User dashboard</a></nav><div class="side-bottom nav-list"><a href="../logout.php"><span class="ico">↪</span>Sign out</a></div></aside>
+<main class="main-area"><header class="topbar"><h2>Administrator Overview</h2><div class="user-chip"><span class="avatar" style="background:#e8e6ff;color:#6951bd"><?= e(strtoupper(substr($adminName,0,1))) ?></span><?= e($adminName) ?><a class="button light" href="../logout.php">Sign out</a></div></header><div class="content"><section class="welcome admin-banner"><p class="eyebrow">Control center</p><h1>Welcome, <?= e($adminName) ?></h1><p>Manage FitTrack accounts and keep the fitness library organized.</p></section>
+<?php if (!empty($loadError)): ?><div class="alert error">Some admin statistics could not be loaded. Check the database schema.</div><?php endif; ?>
+<section class="stats"><article class="stat"><div class="stat-label"><span class="stat-icon">♙</span>Regular users</div><div class="stat-value"><?= $totalUsers ?></div><span class="muted">Registered user accounts</span></article><article class="stat"><div class="stat-label"><span class="stat-icon">⚙</span>Administrators</div><div class="stat-value"><?= $totalAdmins ?></div><span class="muted">Admin accounts</span></article><article class="stat"><div class="stat-label"><span class="stat-icon">⚒</span>Workout sessions</div><div class="stat-value"><?= $totalWorkouts ?></div><span class="muted">Across all users</span></article><article class="stat"><div class="stat-label"><span class="stat-icon">▤</span>Exercises</div><div class="stat-value"><?= $totalExercises ?></div><span class="muted">In the exercise library</span></article></section>
+<section class="panel"><div class="panel-head"><h3>Subscription overview</h3><a class="button light" href="users.php">Manage subscriptions</a></div><div class="stats-grid"><article class="stat-card"><p>Premium active</p><h2><?= (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role='user' AND subscription_status='active' AND subscription_expires_at >= CURDATE()")->fetchColumn() ?></h2></article><article class="stat-card"><p>Requests pending</p><h2><?= (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role='user' AND subscription_status='pending'")->fetchColumn() ?></h2></article><article class="stat-card"><p>Expired subscriptions</p><h2><?= (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role='user' AND (subscription_status='expired' OR (subscription_status='active' AND subscription_expires_at < CURDATE()))")->fetchColumn() ?></h2></article></div></section>
+<div class="cols"><section class="panel"><div class="panel-head"><h3>Recently registered accounts</h3><a class="button light" href="users.php">Manage users</a></div><p class="panel-desc">Latest accounts in FitTrack</p><div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th></tr></thead><tbody><?php foreach ($recentUsers as $person): ?><tr><td><strong><?= e($person['name']) ?></strong></td><td><?= e($person['email']) ?></td><td><span class="badge"><?= e(ucfirst($person['role'])) ?></span></td><td><?= e(substr($person['created_at'],0,10)) ?></td></tr><?php endforeach; ?></tbody></table></div></section><section class="panel"><h3>Admin shortcuts</h3><p class="panel-desc">Common system tasks</p><div class="list"><a class="list-row" href="users.php"><span>Manage user accounts</span><strong>→</strong></a><a class="list-row" href="exercises.php"><span>Manage exercises</span><strong>→</strong></a><a class="list-row" href="../index.php"><span>Portal landing page</span><strong>→</strong></a></div></section></div></div></main></div></body></html>
